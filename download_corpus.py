@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 import urllib
 import sys
 import re
+import time
 
 
 def get_sparknotes_novel_urls():
@@ -22,9 +23,16 @@ def get_sparknotes_novel_urls():
 
         for entry in column.find_all('div', class_='entry'):
 
-            entry_url = entry.find('a')['href']
-            if entry_url != '#':
-                novel_urls.append(entry_url)
+            entry_url = entry.find('a')['href'].encode('ascii')
+
+            # Do some cleaning
+            if entry_url == '#':
+                continue
+
+            if entry_url[:-1] != '/':
+                entry_url += '/'
+
+            novel_urls.append(entry_url)
 
     return novel_urls
 
@@ -64,20 +72,40 @@ def get_sparknotes_summaries(urls):
 
         text = ''
         studyguide = soup.find('div', id='plotoverview', class_='studyGuideText')
+
+        if studyguide is None:
+            print('No plot overview at ' + summary_url)
+            continue
+
         for p in studyguide.find_all('p'):
             text += re.sub('\s+', ' ', p.text.encode('ascii', 'ignore')).strip()
 
-        print(text)
+        summaries.append(text)
+
+        if len(summaries) > 3:
+            return summaries
 
     return summaries
 
 
+def save_summaries(summaries):
+    with open('corpus_data/sparknotes.txt', 'w') as file:
+        for text in summaries:
+            file.write(text + '\n')
+
+
 if __name__ == '__main__':
+
+    start = time.time()
 
     print('Compiling summary URL\'s...')
     urls = get_sparknotes_novel_urls()
 
     print('Compiling summary texts...')
-    print('Found {} plot summeries'.format(len(urls)))
+    print('Found {} plot summaries'.format(len(urls)))
 
-    get_sparknotes_summaries(urls)
+    summaries = get_sparknotes_summaries(urls)
+
+    print('Done in ', start - time.time(), 's')
+
+    save_summaries(summaries)
