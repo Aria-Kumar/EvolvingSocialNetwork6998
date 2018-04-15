@@ -4,6 +4,7 @@ import sys
 import re
 import time
 
+verbose = True
 
 def get_sparknotes_novel_urls():
     """
@@ -59,7 +60,13 @@ def get_sparknotes_summaries(urls):
 
     summaries = []
 
-    for url in urls:
+    for i in range(len(urls)):
+
+        if verbose and i % 10 == 0:
+            sys.stdout.write('\rDownload Progress:\t{:.2}%'.format(float(i) / float(len(urls))))
+            sys.stdout.flush()
+
+        url = urls[i]
 
         # Open the summary webpage
         summary_url = url + 'summary/'
@@ -81,9 +88,6 @@ def get_sparknotes_summaries(urls):
             text += re.sub('\s+', ' ', p.text.encode('ascii', 'ignore')).strip()
 
         summaries.append(text)
-
-        if len(summaries) > 3:
-            return summaries
 
     return summaries
 
