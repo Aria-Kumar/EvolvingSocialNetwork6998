@@ -1,8 +1,12 @@
 from Corpus import *
 import nltk
 from nltk.corpus import stopwords
+import pickle as pkl
+
 
 stopwords_set = set(stopwords.words('english'))
+word2feature_vector = pkl.load(open('../resource/word2feature_vector.pkl', 'rb'))
+word_dim = len(word2feature_vector['good'])
 
 '''
     Util functions
@@ -36,6 +40,23 @@ def char_deprel_set(sentence, char_id, deprel, debug=False):
               + ' '.join([df.ix[token_idx]['originalWord'] for token_idx in token_id_set]))
     return token_id_set
 
+def append_wordset2feature_vector(feature_vec, word_set):
+    if len(word_set) == 0:
+        feature_vec += [0 for _ in range(word_dim)]
+        return
+    agg = np.zeros(word_dim, dtype='float')
+    i = 0
+    for word in word_set:
+        if word2feature_vector.get(word) is None:
+            continue
+        agg = agg + np.array(word2feature_vector[word], dtype='float')
+        i += 1
+    if i == 0:
+        feature_vec += [0 for _ in range(word_dim)]
+        return
+    agg = agg /  i
+    feature_vec += agg.tolist()
+
 # given a sentence and char pair, return a list of tokenIds for which char1/2 is nsubj/dobj
 def get_general_deprel_sets(sentence, char_pair):
     character_id1, character_id2 = char_pair
@@ -47,7 +68,7 @@ def get_general_deprel_sets(sentence, char_pair):
     return char1_sub_set, char2_sub_set, char1_obj_set, char2_obj_set
 
 def get_original_word(sentence, token_idx_set):
-    return [sentence.df.ix[tokenId]['originalWord'] for tokenId in token_idx_set]
+    return [sentence.df.ix[tokenId]['lemma'] for tokenId in token_idx_set]
 
 '''
     Core Implementations
@@ -163,19 +184,37 @@ def adverbs_used(sentence, char_pair):
 
 def in_between(sentence, char_pair):
     wordlist = get_original_word(sentence, _in_between(sentence, char_pair))
-    print(wordlist)
     return [w for w in wordlist if w not in stopwords_set]
+
+def get_feature_vec(sentence, char_pair):
+    feature_vec = []
+    if are_team(sentence, char_pair):
+        feature_vec += [1]
+    else:
+        feature_vec += [0]
+
+    act_together_words = act_together(sentence, char_pair)
+    append_wordset2feature_vector(feature_vec, act_together_words)
+    surrogate_act_together_words = surrogate_act_together(sentence, char_pair)
+    append_wordset2feature_vector(feature_vec, surrogate_act_together_words)
+    adverb_used_words = adverbs_used(sentence, char_pair)
+    append_wordset2feature_vector(feature_vec, adverb_used_words)
+    in_between_words = in_between(sentence, char_pair)
+    append_wordset2feature_vector(feature_vec, in_between_words)
+    return feature_vec
+
+
 
 if __name__ == '__main__':
     # reading the texts and picking a sentence
-    # author_name = 'albee.dream' # file name
-    author_name = 'agee.death' # file names
+    author_name = 'albee.dream' # file name
+    # author_name = 'agee.death' # file names
     passage = Passage(author_name)
     sequence_dict = passage.sequence_dict
     # char_pair = [char_pair for char_pair in sequence_dict][0] # which character pair to pick
-    char_pair = (0,1)
+    char_pair = (1,3)
     sentence_array = sequence_dict[char_pair].sentence_seq # sentence array is
-    sentence = sentence_array[1] # getting the first sentence of the sequence
+    sentence = sentence_array[5] # getting the first sentence of the sequence
     print('The sentence of interest')
     print(sentence)
     print('The character pair of interest')
@@ -191,4 +230,5 @@ if __name__ == '__main__':
     print(adverb_used_words)
     in_between_words = in_between(sentence, char_pair)
     print(in_between_words)
-
+    feature_vector = get_feature_vec(sentence, char_pair)
+    print(feature_vector)

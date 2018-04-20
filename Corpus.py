@@ -25,6 +25,8 @@ class Corpus:
                 if verbose:
                     print('Processing %s finishes.' % f_name)
 
+    
+
 '''
     The passage class contains information about a sparknote summary of a passage
 '''
