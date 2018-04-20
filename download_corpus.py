@@ -63,7 +63,7 @@ def get_sparknotes_summaries(urls):
     for i in range(len(urls)):
 
         if verbose and i % 10 == 0:
-            sys.stdout.write('\rDownload Progress:\t{:.2}%'.format(float(i) / float(len(urls))))
+            sys.stdout.write('\rDownload Progress:\t{:.2}%'.format(100 * float(i) / float(len(urls))))
             sys.stdout.flush()
 
         url = urls[i]
@@ -93,6 +93,9 @@ def get_sparknotes_summaries(urls):
 
 
 def save_summaries(summaries):
+    """
+    Save each text on a new line
+    """
     with open('corpus_data/sparknotes.txt', 'w') as file:
         for text in summaries:
             file.write(text + '\n')
@@ -110,6 +113,6 @@ if __name__ == '__main__':
 
     summaries = get_sparknotes_summaries(urls)
 
-    print('Done in ', start - time.time(), 's')
+    print('Done in ', time.time() - start, 's')
 
     save_summaries(summaries)
