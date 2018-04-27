@@ -4,6 +4,7 @@ from os import listdir
 from os import path
 import math
 import csv
+from Features_rz import * # get_feature_vec
 
 PROCESSED_DIR = '../Data_EvolvingRelationships_Chaturvedi_AAAI2017/processedText/'
 FULLY_ANNOTATED_DIR = '../Data_EvolvingRelationships_Chaturvedi_AAAI2016/fullyAnnotatedSequences/'
@@ -24,8 +25,16 @@ class Corpus:
                 self.passages.append(Passage(f_name, verbose))
                 if verbose:
                     print('Processing %s finishes.' % f_name)
+        self.create_data()
 
-    
+    def create_data(self):
+        self.X_seqs, self.y_seqs = [], []
+        for passage in self.passages:
+            for char_pair in passage.sequence_dict:
+                sequence = passage.sequence_dict[char_pair]
+                if sequence.labeled is not None:
+                    self.X_seqs.append(sequence.feature_vectors)
+                    self.y_seqs.append(sequence.labels)
 
 '''
     The passage class contains information about a sparknote summary of a passage
@@ -83,18 +92,26 @@ class Sequence:
         # check wether there are annotations for this sequence
         in_file = None
         annotated_dir = FULLY_ANNOTATED_DIR + self.file_name + SENTENCE_SUFFIX
+        self.labeled = 'full'
         if not path.isfile(annotated_dir):
             annotated_dir = PARIALLY_ANNOTATED_DIR + self.file_name + SENTENCE_SUFFIX
+            self.labeled = 'partial'
             if not path.isfile(annotated_dir):
+                self.labeled = None
                 return
     
-        self.labeled = True
         seqeuence_df = pd.read_csv(annotated_dir, sep=':::', engine='python')
         self.labels = [None if str(l) == 'nan'
                   else (1 if 'p' == l[0] else 0)
                   for l in seqeuence_df['manualLabel'].values]
+        self.create_feature_vectors()
         
-        assert(len(self.labels) == len(self.sentence_seq))
+        assert(len(self.labels) == len(self.feature_vectors))
+
+    def create_feature_vectors(self):
+        self.feature_vectors = []
+        for sentence in self.sentence_seq:
+            self.feature_vectors.append(get_feature_vec(sentence, self.char_pair))
 
 '''
     A sentence class that contains necessary information for a "sentence" in a passage
@@ -148,5 +165,7 @@ class Sentence:
 
 if __name__ == '__main__':
     corpus = Corpus(verbose=True)
-    author_name = 'albee.dream'
-    passage = Passage(author_name)
+    X_seqs = corpus.X_seqs
+    print(len(X_seqs))
+    # author_name = 'albee.dream'
+    # passage = Passage(author_name)

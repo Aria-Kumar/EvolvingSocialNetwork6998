@@ -5,8 +5,15 @@ import pickle as pkl
 
 
 stopwords_set = set(stopwords.words('english'))
-word2feature_vector = pkl.load(open('../resource/word2feature_vector.pkl', 'rb'))
-word_dim = len(word2feature_vector['good'])
+word2feature_vector = pkl.load(open('../resource/word2feature_vec.pkl', 'rb'))
+word_dim = len(word2feature_vector['good_a'])
+
+def pos2pos(pos):
+    if pos[0] == 'V':
+        return 'v'
+    if pos[0] == 'N':
+        return 'n'
+    return 'a'
 
 '''
     Util functions
@@ -68,7 +75,9 @@ def get_general_deprel_sets(sentence, char_pair):
     return char1_sub_set, char2_sub_set, char1_obj_set, char2_obj_set
 
 def get_original_word(sentence, token_idx_set):
-    return [sentence.df.ix[tokenId]['lemma'] for tokenId in token_idx_set]
+    return [sentence.df.ix[tokenId]['lemma'] + '_'
+            + pos2pos(sentence.df.ix[tokenId]['pos'])
+            for tokenId in token_idx_set]
 
 '''
     Core Implementations

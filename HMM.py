@@ -1,5 +1,6 @@
 from Perceptron import Custom_Perceptron
 import numpy as np
+from sklearn.metrics import f1_score, accuracy_score, classification_report
 
 class Seqs:
 
@@ -13,7 +14,7 @@ class Seqs:
 
     # loading the features and labels
     def load_data(self, feature_X, y):
-        self.seq_count = len(X)
+        self.seq_count = len(feature_X)
         self.seq_length = [len(x) for x in feature_X]
         self.feature_X, self.y = feature_X, y
         for seq_idx in range(self.seq_count):
@@ -126,6 +127,31 @@ class Seqs:
             y = [[None] * len(x) for x in X]
         self.load_data(X, y)
         return self.decode_seqs()
+
+    def evaluate(self, X_test, y_test):
+        y_pred = self.predict(X_test)
+        y_test, y_pred = flatten_rm_none(y_test, y_pred)
+        f1_macro, f1_weighted, acc = (f1_score(y_test, y_pred, average='macro'),
+                                      f1_score(y_test, y_pred, average='weighted'),
+                                      accuracy_score(y_test, y_pred))
+        # print(classification_report(y_test, y_pred))
+        return {'macro_f1_score': f1_macro,
+                'weighted_f1_score': f1_weighted,
+                'accuracy': acc}
+
+# remove the labels that is None in the test set and flatten
+def flatten_rm_none(y_test, y_pred):
+    _y_test, _y_pred = [], []
+    seq_count = len(y_test)
+    for seq_idx in range(seq_count):
+        sentence_count = len(y_test[seq_idx])
+        for sentence_idx in range(sentence_count):
+            if y_test[seq_idx][sentence_idx] is not None:
+                _y_test.append(y_test[seq_idx][sentence_idx])
+                _y_pred.append(y_pred[seq_idx][sentence_idx])
+    for idx in range(len(_y_test)):
+        assert(_y_test[idx] is not None and _y_pred[idx] is not None)
+    return _y_test, _y_pred
 
 def eval_state(clf, state):
     return clf.score(state.x, state.positve)
@@ -243,7 +269,7 @@ if __name__ == '__main__':
         y = [[idx % 3 != 0 for idx in range(array_length)]]
         # training
         seqs = Seqs(feature_dim, order)
-        seqs.fit(X, y, num_iterations=100)
+        seqs.fit(X, y, num_iterations=500)
         r = seqs.predict(X)
         print(r)
 
