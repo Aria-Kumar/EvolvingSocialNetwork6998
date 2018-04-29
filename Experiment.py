@@ -3,6 +3,7 @@ from HMM import Seqs
 from sklearn.metrics import f1_score, accuracy_score, classification_report
 import random
 import pandas as pd
+from sklearn.linear_model import LogisticRegressionCV, LogisticRegression
 
 # arverage the a list of result dictionaries
 def average_dictionary(dictionaries, sd=False):
@@ -12,6 +13,7 @@ def average_dictionary(dictionaries, sd=False):
     else:
         return df.mean()
 
+# taking away the labels for training
 def mask_y_seqs(y_seqs, inds):
     new_y_seqs = [y_seq[:] for y_seq in y_seqs]
     for (seq_idx, sent_idx) in inds:
@@ -19,6 +21,7 @@ def mask_y_seqs(y_seqs, inds):
         new_y_seqs[seq_idx][sent_idx] = None
     return new_y_seqs
 
+# extracting labels by the turth/prediction by the indexes
 def extract_labels(y_seqs, inds):
     result = [y_seqs[seq_idx][sent_idx] for (seq_idx, sent_idx) in inds]
     for r in result:
@@ -27,6 +30,7 @@ def extract_labels(y_seqs, inds):
 
 class Experiment:
 
+    # an experiment class
     def __init__(self, verbose=False):
         print('Loading corpus ...')
         self.corpus = Corpus(verbose=verbose)
@@ -37,6 +41,7 @@ class Experiment:
             assert(len(self.X_seqs[seq_idx]) == len(self.y_seqs[seq_idx]))
         self.feature_dim = len(self.X_seqs[0][0])
     
+    # cross validation
     def cv(self, fold):
         fold_inds = self.create_train_test_split(fold)
         results = []
@@ -47,13 +52,17 @@ class Experiment:
             results.append(result)
         return results
     
-    
+    # create cross validation training and testing index st
     def create_train_test_split(self, fold):
+        
+        # each data point is coordinated by its seq_idx and sent_idx
         seq_sent_agg = []
         for seq_idx in range(self.seq_count):
             for sent_idx in range(len(self.y_seqs[seq_idx])):
                 if self.y_seqs[seq_idx][sent_idx] is not None:
                     seq_sent_agg.append((seq_idx, sent_idx))
+    
+        # shuffle to create folds randomly
         random.shuffle(seq_sent_agg)
         cutoffs = [int(float(len(seq_sent_agg)) / fold * fold_idx)
                    for fold_idx in range(fold)]
@@ -63,6 +72,7 @@ class Experiment:
         return fold_inds
 
     def train_test(self, fold_ind):
+        # get the training data that is masked (testing data taken out)
         train_y_seqs = mask_y_seqs(self.y_seqs, fold_ind)
         num_repeats = 50
         results = []
@@ -77,7 +87,17 @@ class Experiment:
                       'accuracy': accuracy_score(y_test, y_pred)})
             # print(classification_report(y_test, y_pred))
             results.append(result)
+        print(average_dictionary(results, sd=True))
         return average_dictionary(results)
+
+    def create_unstructured_data(self):
+        X, y = [], []
+        for seq_idx in range(self.seq_count):
+            for sent_idx in range(len(self.X_seqs[seq_idx])):
+                if self.y_seqs[seq_idx][sent_idx] is not None:
+                    X.append(self.X_seqs[seq_idx][sent_idx])
+                    y.append(self.y_seqs[seq_idx][sent_idx])
+        return X, y
     
     # ==================== cross validation by sequence ====================
     def _cv(self, fold):
@@ -112,15 +132,52 @@ class Experiment:
         self.clf.fit(self.X_seqs_train, self.y_seqs_train)
         return self.clf.evaluate(self.X_seqs_test, self.y_seqs_test)
 
+def LR_cv(X, y, fold=10):
+    data_count = len(X)
+    cv_idx_order = [i for i in range(len(X))]
+    random.shuffle(cv_idx_order)
+    cutoffs = [int(float(data_count) / fold * fold_idx)
+               for fold_idx in range(fold)]
+    cutoffs.append(data_count)
+    fold_inds = [cv_idx_order[cutoffs[fold_idx]:cutoffs[fold_idx + 1]]
+                 for fold_idx in range(fold)]
+    results = []
+
+    for fold_idx in range(fold):
+        print('Cross validation for fold %d.' % (fold_idx + 1))
+        fold_ind = set(fold_inds[fold_idx])
+        X_train, X_test, y_train, y_test = ([X[idx] for idx in range(data_count) if idx not in fold_ind],
+                                            [X[idx] for idx in fold_ind],
+                                            [y[idx] for idx in range(data_count) if idx not in fold_ind],
+                                            [y[idx] for idx in fold_ind])
+        # clf = LogisticRegressionCV(class_weight='balanced')
+        # clf = LogisticRegression()
+        clf = LogisticRegressionCV()
+        clf.fit(X_train, y_train)
+        y_pred = clf.predict(X_test)
+        result = ({'macro_f1': f1_score(y_test, y_pred, average='macro'),
+                  'weighted_f1': f1_score(y_test, y_pred, average='weighted'),
+                  'accuracy': accuracy_score(y_test, y_pred)})
+        results.append(result)
+    return average_dictionary(results, sd=True)
 
 if __name__ == '__main__':
-    fold = 10
+    option = 'structured'
     experiment = Experiment()
-    results = experiment.cv(fold)
-    mean, standard_dev = average_dictionary(results, sd=True)
-    print('Mean for cross validation')
-    print(mean)
-    print('Standard Deviation')
-    print(standard_dev)
+    fold = 10
+    
+    if option == 'structured':
+        results = experiment.cv(fold)
+        mean, standard_dev = average_dictionary(results, sd=True)
+        print('Mean for cross validation')
+        print(mean)
+        print('Standard Deviation')
+        print(standard_dev)
+
+    if option == 'unstructured':
+        X, y = experiment.create_unstructured_data()
+        result = LR_cv(X, y, fold)
+        print(result)
+
 
 

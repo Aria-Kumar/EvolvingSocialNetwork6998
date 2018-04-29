@@ -197,6 +197,7 @@ def in_between(sentence, char_pair):
 
 def get_feature_vec(sentence, char_pair):
     feature_vec = []
+    '''
     if are_team(sentence, char_pair):
         feature_vec += [1]
     else:
@@ -210,6 +211,7 @@ def get_feature_vec(sentence, char_pair):
     append_wordset2feature_vector(feature_vec, adverb_used_words)
     in_between_words = in_between(sentence, char_pair)
     append_wordset2feature_vector(feature_vec, in_between_words)
+    '''
     return feature_vec
 
 
