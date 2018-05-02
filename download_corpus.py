@@ -1,10 +1,11 @@
 from bs4 import BeautifulSoup
-import urllib
+from urllib.request import urlopen
 import sys
 import re
 import time
 
 verbose = True
+
 
 def get_sparknotes_novel_urls():
     """
@@ -24,14 +25,16 @@ def get_sparknotes_novel_urls():
 
         for entry in column.find_all('div', class_='entry'):
 
-            entry_url = entry.find('a')['href'].encode('ascii')
+            entry_url = str(entry.find('a')['href'])
 
             # Do some cleaning
             if entry_url == '#':
                 continue
 
-            if entry_url[:-1] != '/':
+            if entry_url[-1] != '/':
                 entry_url += '/'
+
+            print(entry_url)
 
             novel_urls.append(entry_url)
 
@@ -43,7 +46,7 @@ def make_soup(url):
     Create a beautiful soup instance from the given url
     """
     try:
-        response = urllib.urlopen(url)
+        response = urlopen(url)
         html = response.read()
         soup = BeautifulSoup(html, 'html.parser')
     except IOError:
@@ -85,7 +88,7 @@ def get_sparknotes_summaries(urls):
             continue
 
         for p in studyguide.find_all('p'):
-            text += re.sub('\s+', ' ', p.text.encode('ascii', 'ignore')).strip()
+            text += re.sub('\s+', ' ', p.text).strip()
 
         summaries.append(text)
 
