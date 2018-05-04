@@ -66,6 +66,7 @@ class WordEmbedding():
 
         return sentences
 
+
     def read_sentences_from_corpus(self, sentences_file_path):
 
         try:
@@ -88,8 +89,15 @@ class WordEmbedding():
         return self.model.wv[word]
 
 
-
 if __name__ == '__main__':
 
     # Create a word embedding from the downloaded sparknotes corpus
-    WordEmbedding(save_to='models/sparknotes.w2v', training_sentences_file='corpus_data/sparknotes.txt')
+    # emb = WordEmbedding(save_to='models/final_sparknotes.w2v', training_sentences_file='corpus_data/sparknotes.txt')
+
+    # Load a .w2v file and then get a word embedding for a given word
+    emb = WordEmbedding(load_from='models/final_sparknotes.w2v')
+
+    vect1 = emb.vector('test')
+    # vect2 = emb.vector('t')
+
+    print(vect1)
