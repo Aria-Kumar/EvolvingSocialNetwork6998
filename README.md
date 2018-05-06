@@ -1,13 +1,13 @@
 # EvolvingSocialNetwork6998
 
-## Absract:
+## Abstract:
 
 We reproduced work from “Modeling Evolving Relationships Between Characters in Literary Novels” (Snigdha Chaturvedi, Shashank Srivastava, Hal Daume III, Chris Dyer (2016)). Though the heuristics features based on the dependency tree described in this paper sounds simple and convincing at the first glance, our implementation and error analysis demonstrates that these features need to be designed/described with more sophistication, or they become insufficient to tackle the task of targeted sentiment classification. Furthermore, we argue that macro-F score (as opposed to weighted F-score) and cross validation on random sequences (as opposed to random data points) are more meaningful evaluation metrics. Nevertheless, we find that one result in \cite{chaturvedi2016modeling} exceeds the theoretically best performance. This enable us to "reverse engineer" the actual metrics used by \cite{chaturvedi2016modeling} (which has not been verified by personal communication), and our implementation show a strong evidence that it is using weighted F-score and cross validation on individual data points.
 
 ## Evaluation of Our Results vs. Results in the Original Paper:
 We use cross validation on individual data points rather than entire sequences, and report the weighted F-measure and macro F measure. 
 
-![blueevaluation](blueevaluation.png)
+![greenevaluation](images/greenevaluation.png)
 
 We see that the result of our implementation based on weighted F-score is comparable to that reported in the paper, suggesting that the paper is also using weighted F-score; on the other hand, in both cases the macro-F score is significantly lower than the weighted one, since the classifier has a better performance on the positive class. Nevertheless, we also see a substantial improvement in macro-F score from the model that only consists of transition feature to that has all the sentence features. It indicates that the feature engineer is still successful that it can bring significant improvements over the baseline; it is only that both the scores of the best model and baseline reported are artificially higher than what "it should have been".
 
@@ -16,7 +16,7 @@ The original paper reports the F-measure on 10 fold cross validation. In this se
 
 In such a sequence classification task, researchers usually pick entire sequences of data to be either training/testing set. Such an evaluation is more meaningful than randomly picking data points as training/testing set, since in real life we encounter entirely new sequences without any data points on it being labeled before hand. See visualization below.
 
-![crossvalidation.png](crossvalidation.png)
+![crossvalidation.png](images/crossvalidation.png)
 
 While multiple classes are involved in an F-score, researchers usually mean "macro F-score" over different classes, meaning a simple average of the F-score of each class. Another interpretation might be weighted F-score, where the average F is weighted by the number of true instances for each class. However, under unbalanced setting, weighted F-score will give a better but less informative evaluation, since algorithms usually have higher F-scores on the dominating class, and giving them more weight leads to an artificially high performance, which prevents us from seeing its performance on classes that are underrepresented.
 
