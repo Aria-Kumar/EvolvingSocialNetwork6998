@@ -16,7 +16,7 @@ The original paper reports the F-measure on 10 fold cross validation. In this se
 
 In such a sequence classification task, researchers usually pick entire sequences of data to be either training/testing set. Such an evaluation is more meaningful than randomly picking data points as training/testing set, since in real life we encounter entirely new sequences without any data points on it being labeled before hand. See visualization below.
 
-!crossvalidation](crossvalidation.png)
+![crossvalidation.png](crossvalidation.png)
 
 While multiple classes are involved in an F-score, researchers usually mean "macro F-score" over different classes, meaning a simple average of the F-score of each class. Another interpretation might be weighted F-score, where the average F is weighted by the number of true instances for each class. However, under unbalanced setting, weighted F-score will give a better but less informative evaluation, since algorithms usually have higher F-scores on the dominating class, and giving them more weight leads to an artificially high performance, which prevents us from seeing its performance on classes that are underrepresented.
 
