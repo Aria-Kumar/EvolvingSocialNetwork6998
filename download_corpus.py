@@ -37,7 +37,7 @@ def get_sparknotes_novel_urls():
             print(entry_url)
 
             novel_urls.append(entry_url)
-
+`
     return novel_urls
 
 
@@ -105,6 +105,9 @@ def save_summaries(summaries):
 
 
 if __name__ == '__main__':
+    """
+    Default usage: download and save all sparknotes summaries to corpus/ folder.
+    """
 
     start = time.time()
 

@@ -3,9 +3,9 @@ from subprocess import call
 import os, sys
 import time
 import xml.etree.ElementTree as ET
-import nltk
 import copy
 import pandas as pd
+from collections import Counter
 
 
 data_dir = '../Data_EvolvingRelationships_Chaturvedi_AAAI2017/processedText/'
@@ -74,14 +74,22 @@ def generate_frames():
         print('done in', time.time() - s)
 
 def parse_frames():
+    names = []
 
     for file in os.listdir(frames_dir):
         print(file)
-        root = ET.parse(frames_dir + file).getroot()
-        sentences = root.findall('.//sentences/')
+        try:
+            root = ET.parse(frames_dir + file).getroot()
+            sentences = root.findall('.//sentences/')
+        except:
+            continue
+
         for sentence in sentences:
             aS = sentence.findall('.//annotationSet')
             print('set')
+
+
+
             for annot in aS:
                 name = annot.get('frameName')
                 print('  ' + name)
@@ -89,12 +97,26 @@ def parse_frames():
                 for label in annot.findall('.//label'):
                     ID, name, start, end = label.get('ID'), label.get('name'), label.get('start'), label.get('end')
                     print('\t', ID, name, start, end)
+                    # annot.add((ID, name, start, end))
+                    names.append(name)
+
+    return names
+
+def most_common_frames():
+    names = Counter()
+
+    for name in parse_frames():
+        names[name] += 1
+
+    print(names)
+
+
 
 if __name__ == '__main__':
 
     # Make sure to create a folder 'compressed/' before running this
     # compress_from_processed_text()
 
-    #
-    # generate_frames()
-    parse_frames()
+    generate_frames()
+    # parse_frames()
+    most_common_frames()
