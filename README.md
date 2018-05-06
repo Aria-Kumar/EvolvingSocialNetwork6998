@@ -7,7 +7,7 @@ We reproduced work from “Modeling Evolving Relationships Between Characters in
 ## Evaluation of Our Results vs. Results in the Original Paper:
 We use cross validation on individual data points rather than entire sequences, and report the weighted F-measure and macro F measure. 
 
-![blueevaluation](blueevaluation.png)
+![greenevaluation](images\blueevaluation.png)
 
 We see that the result of our implementation based on weighted F-score is comparable to that reported in the paper, suggesting that the paper is also using weighted F-score; on the other hand, in both cases the macro-F score is significantly lower than the weighted one, since the classifier has a better performance on the positive class. Nevertheless, we also see a substantial improvement in macro-F score from the model that only consists of transition feature to that has all the sentence features. It indicates that the feature engineer is still successful that it can bring significant improvements over the baseline; it is only that both the scores of the best model and baseline reported are artificially higher than what "it should have been".
 
