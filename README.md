@@ -6,7 +6,9 @@ We reproduced work from “Modeling Evolving Relationships Between Characters in
 
 ## Evaluation of Our Results vs. Results in the Original Paper:
 We use cross validation on individual data points rather than entire sequences, and report the weighted F-measure and macro F measure. 
+
 ![blueevaluation](blueevaluation.png)
+
 We see that the result of our implementation based on weighted F-score is comparable to that reported in the paper, suggesting that the paper is also using weighted F-score; on the other hand, in both cases the macro-F score is significantly lower than the weighted one, since the classifier has a better performance on the positive class. Nevertheless, we also see a substantial improvement in macro-F score from the model that only consists of transition feature to that has all the sentence features. It indicates that the feature engineer is still successful that it can bring significant improvements over the baseline; it is only that both the scores of the best model and baseline reported are artificially higher than what "it should have been".
 
 
@@ -14,9 +16,9 @@ The original paper reports the F-measure on 10 fold cross validation. In this se
 
 In such a sequence classification task, researchers usually pick entire sequences of data to be either training/testing set. Such an evaluation is more meaningful than randomly picking data points as training/testing set, since in real life we encounter entirely new sequences without any data points on it being labeled before hand. See visualization below.
 
-image
+!crossvalidation](crossvalidation.png)
 
-Also, the F-score for a class is defined as $F = \frac{2PR}{P + R}$, where $P$ is the precision and $r$ the recall. While multiple classes are involved, researchers usually mean "macro F-score" over different classes, meaning a simple average of the F-score of each class. Another interpretation might be weighted F-score, where the average F is weighted by the number of true instances for each class. However, under unbalanced setting, weighted F-score will give a better but less informative evaluation, since algorithms usually have higher F-scores on the dominating class, and giving them more weight leads to an artificially high performance, which prevents us from seeing its performance on classes that are underrepresented.
+While multiple classes are involved in an F-score, researchers usually mean "macro F-score" over different classes, meaning a simple average of the F-score of each class. Another interpretation might be weighted F-score, where the average F is weighted by the number of true instances for each class. However, under unbalanced setting, weighted F-score will give a better but less informative evaluation, since algorithms usually have higher F-scores on the dominating class, and giving them more weight leads to an artificially high performance, which prevents us from seeing its performance on classes that are underrepresented.
 
 ## Summary 
 
