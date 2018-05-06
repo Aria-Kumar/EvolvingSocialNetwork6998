@@ -2,11 +2,14 @@ from Corpus import *
 import nltk
 from nltk.corpus import stopwords
 import pickle as pkl
+from
 
 
 stopwords_set = set(stopwords.words('english'))
 word2feature_vector = pkl.load(open('../resource/word2feature_vec.pkl', 'rb'))
 word_dim = len(word2feature_vector['good_a'])
+word_embed_dir = 'models/final_sparknotes.w2v'
+emb = WordEmbedding(load_from=word_embed_dir)
 
 def pos2pos(pos):
     if pos[0] == 'V':
@@ -18,7 +21,7 @@ def pos2pos(pos):
 '''
     Util functions
 '''
-# return a list of tokenids of words that a character is the deprel ('nsubj' or 'dobj')
+# return a list of tokenids of words that a character is the deprel ('nsubj' or 'dobj' or 'iobj')
 def char_deprel_set(sentence, char_id, deprel, debug=False):
     token_id_set = set()
     
@@ -30,18 +33,21 @@ def char_deprel_set(sentence, char_id, deprel, debug=False):
     correctedCharIds = df['correctedCharId'].values
     deprels = df['deprel'].values
     tokenIds = df['tokenId'].values
+    offset = tokenIds[0]
     headTokenIds = df['headTokenId'].values
 
     for token_idx in range(sentence.num_tokens):
-        headTokenId = headTokenIds[token_idx]
-        if headTokenId == -1:
-            continue
         if correctedCharIds[token_idx] == char_id:
-            if deprels[token_idx] == deprel:
-                token_id_set.add(headTokenId)
-            if deprels[token_idx] == 'conj':
-                if df.ix[headTokenId]['deprel'] == deprel and df.ix[headTokenId]['headTokenId'] != -1:
-                    token_id_set.add(df.ix[headTokenId]['headTokenId'])
+            cur_token_idx = token_idx
+            while deprels[cur_token_idx] == 'conj':
+                cur_token_idx = headTokenIds[cur_token_idx] - offset
+                if cur_token_idx == -1:
+                    break
+            if cur_token_idx == -1:
+                continue
+            if deprels[cur_token_idx] == deprel and headTokenIds[cur_token_idx] != -1:
+                token_id_set.add(df.ix[cur_token_idx + offset]['headTokenId'])
+
     if debug:
         print('extracted words are: '
               + ' '.join([df.ix[token_idx]['originalWord'] for token_idx in token_id_set]))
@@ -67,11 +73,14 @@ def append_wordset2feature_vector(feature_vec, word_set):
 # given a sentence and char pair, return a list of tokenIds for which char1/2 is nsubj/dobj
 def get_general_deprel_sets(sentence, char_pair):
     character_id1, character_id2 = char_pair
-    # according to paper, sharing the same verbs as subj/dobj, but does not seem to work
-    char1_sub_set = char_deprel_set(sentence, character_id1, 'nsubj')
-    char2_sub_set = char_deprel_set(sentence, character_id2, 'nsubj')
-    char1_obj_set = char_deprel_set(sentence, character_id1, 'dobj')
-    char2_obj_set = char_deprel_set(sentence, character_id2, 'dobj')
+    char1_sub_set = (char_deprel_set(sentence, character_id1, 'nsubj')
+                     | char_deprel_set(sentence, character_id1, 'nmod:agent'))
+    char2_sub_set = (char_deprel_set(sentence, character_id2, 'nsubj')
+                     | char_deprel_set(sentence, character_id2, 'nmod:agent'))
+    char1_obj_set = (char_deprel_set(sentence, character_id1, 'dobj')
+                     | char_deprel_set(sentence, character_id1, 'nsubjpass'))
+    char2_obj_set = (char_deprel_set(sentence, character_id2, 'dobj')
+                     | char_deprel_set(sentence, character_id2, 'nsubjpass'))
     return char1_sub_set, char2_sub_set, char1_obj_set, char2_obj_set
 
 def get_original_word(sentence, token_idx_set):
@@ -85,37 +94,10 @@ def get_original_word(sentence, token_idx_set):
 # implement the “are team” feature
 # returns a boolean
 def are_team(sentence, char_pair):
-    
-    # getting the char ids of interest
-    character_id1, character_id2 = char_pair
-    
-    # the dataframe containing all the tokens (in the sentence) and their info
-    df = sentence.df
-    
-    # the raw text of the original sentence
-    sentence_form = sentence.sentence_form
+    char1_sub_set, char2_sub_set, char1_obj_set, char2_obj_set \
+        = get_general_deprel_sets(sentence, char_pair)
+    return len((char1_sub_set & char2_sub_set) | (char1_obj_set & char2_obj_set)) != 0
 
-    # code logics ...
-    # retrieving the data in the form of lists that is convenient to deal with
-    correctedCharIds = df['correctedCharId'].values
-    deprels = df['deprel'].values
-    tokenIds = df['tokenId'].values
-    headTokenIds = df['headTokenId'].values
-    
-    # according to paper, sharing the same verbs as subj/dobj, but does not seem to work
-    char1_sub_set, char2_sub_set, char1_obj_set, char2_obj_set = get_general_deprel_sets(sentence, char_pair)
-    
-    for token_idx in range(sentence.num_tokens):
-        if correctedCharIds[token_idx] not in [character_id1, character_id2]:
-            continue
-    
-        # using conj dependency relation
-        headTokenId = headTokenIds[token_idx]
-        if deprels[token_idx] == 'conj':
-            if headTokenId != -1 and df.ix[headTokenId]['correctedCharId'] in [character_id1, character_id2]:
-                    return True
-
-    return len(char1_sub_set & char2_sub_set) != 0 or len(char1_obj_set & char2_obj_set) != 0
 
 def _act_together(sentence, char_pair):
     char1_sub_set, char2_sub_set, char1_obj_set, char2_obj_set = get_general_deprel_sets(sentence, char_pair)
@@ -131,6 +113,7 @@ def _surrogate_act_together(sentence, char_pair):
     token_idx_set = char1_sub_set | char2_sub_set | char1_obj_set | char2_obj_set \
         - ((char1_sub_set & char2_obj_set) | (char2_sub_set & char1_obj_set)) \
         - ((char1_sub_set & char1_obj_set) | (char2_sub_set & char2_obj_set))
+
     return token_idx_set
 
 def _adverbs_used(sentence, char_pair):
@@ -193,11 +176,21 @@ def adverbs_used(sentence, char_pair):
 
 def in_between(sentence, char_pair):
     wordlist = get_original_word(sentence, _in_between(sentence, char_pair))
-    return [w for w in wordlist if w not in stopwords_set]
+    return [w for w in wordlist if w.split('_')[0] not in stopwords_set]
+
+def get_embed(sentence, char_pair):
+    wordlist = (act_together(sentence, char_pair)
+                + surrogate_act_together(sentence, char_pair)
+                + adverbs_used(sentence, char_pair)
+                + in_between_words(sentence, char_pair))
+
+
+
+
 
 def get_feature_vec(sentence, char_pair):
     feature_vec = []
-    '''
+
     if are_team(sentence, char_pair):
         feature_vec += [1]
     else:
@@ -211,10 +204,11 @@ def get_feature_vec(sentence, char_pair):
     append_wordset2feature_vector(feature_vec, adverb_used_words)
     in_between_words = in_between(sentence, char_pair)
     append_wordset2feature_vector(feature_vec, in_between_words)
-    '''
+    # only connotation value is used for lexical features
+    feature_vec = feature_vec[:-6] + feature_vec[-4:-2]
+
+
     return feature_vec
-
-
 
 if __name__ == '__main__':
     # reading the texts and picking a sentence

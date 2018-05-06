@@ -5,6 +5,8 @@ import random
 import pandas as pd
 from sklearn.linear_model import LogisticRegressionCV, LogisticRegression
 
+num_repeats = 50
+
 # arverage the a list of result dictionaries
 def average_dictionary(dictionaries, sd=False):
     df = pd.DataFrame(dictionaries)
@@ -43,6 +45,7 @@ class Experiment:
     
     # cross validation
     def cv(self, fold):
+        # array of lenght 10
         fold_inds = self.create_train_test_split(fold)
         results = []
         for fold_idx in range(fold):
@@ -74,7 +77,6 @@ class Experiment:
     def train_test(self, fold_ind):
         # get the training data that is masked (testing data taken out)
         train_y_seqs = mask_y_seqs(self.y_seqs, fold_ind)
-        num_repeats = 50
         results = []
         for _ in range(num_repeats):
             self.clf = Seqs(self.feature_dim, order=2)
@@ -87,7 +89,7 @@ class Experiment:
                       'accuracy': accuracy_score(y_test, y_pred)})
             # print(classification_report(y_test, y_pred))
             results.append(result)
-        print(average_dictionary(results, sd=True))
+        # print(average_dictionary(results, sd=True))
         return average_dictionary(results)
 
     def create_unstructured_data(self):
